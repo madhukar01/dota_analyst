@@ -1,0 +1,100 @@
+\documentclass[12pt]{scrreprt}
+\usepackage[a4paper,margin=1in]{geometry}
+
+\title{Dissecting Dota}
+\subtitle{A statistical analysis of Dota 2}
+
+
+\author{
+    \texttt{Madhukara S Holla, Sathkrith}
+    \\
+    \texttt{1st year MSCS, Northeastern University}
+}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\newpage
+\section*{Problem description}
+Dota 2 is a popular online multiplayer game where strategy, individual player skill,
+and resources play a pivotal role in the outcome of each match.
+While the objective of the game is to destroy the enemy team's base, achieving
+this goal is a complex endeavor with strategic decisions and team dynamics.
+
+Each player controls a hero, a unit with unique abilities and attributes that
+evolve as the game progresses. A team consists of five players, each assuming
+a distinct role in the game. "Carry" is responsible for dealing damage, "Support"
+facilitates the growth and provides vision, "Mid/Off-laner" tackles various
+objectives depending on the game's situation. The efficiency and success of each
+role are tied to the in-game resources they acquire. These resources, primarily
+gold and experience, dictate a player's progression, item acquisition, and
+overall strength relative to their opponents.
+\\[\baselineskip]
+This project seeks to answer a crucial question:
+\begin{quote}
+Does a specific distribution of in-game resources among different team roles
+correlate with a higher likelihood of victory?
+\end{quote}
+Furthermore, can we determine an optimal strategy for resource allocation to
+maximize the chances of winning?
+
+\section*{Summary of the Dataset}
+The dataset contains several metrics that are essential for understanding the
+dynamics of each game:
+\subsubsection*{Experimental Unit: Match}
+\begin{itemize}
+    \item Player roles: Identification of each player's role
+    \item Heroes picked: Specific heroes chosen by players
+    \item Player rank: Indicative of player skill level
+    \item Resource metrics: Timestamps associated with gold, experience,
+    net-worth, objectives destroyed, etc.
+    \item Match duration and outcome: Context about the pace and result of the match
+\end{itemize}
+\subsubsection*{Sampling method}
+\begin{enumerate}
+    \item Consider a population of games from the same skill bracket, and the same patch.
+    \item Randomly sample 2500 games and pick the winning team, and then randomly
+    sample 2500 games and pick the losing team. (Do not consider both teams from the same match).
+    \item Consider the resource distribution at the 10 minute mark for each game.
+    \\(First 10 minutes of the game is the most balanced and has the most impact).
+\end{enumerate}
+
+\newpage
+\section*{Proposed methods}
+The primary methodological approach proposed is Multiple Logistic Regression with
+the match outcome as the response variable.
+\subsubsection*{Predictors}
+\begin{itemize}
+    \item Player roles
+    \item Resources acquired by each role (Gold, Exp)
+    \item Interaction terms - Role x Resources
+\end{itemize}
+Additional predictors to be considered: Objectives captured by the team, Heroes
+picked by a role.
+
+\subsubsection*{Methodological difficulties}
+\begin{itemize}
+    \item Multicollinearity between predictors due to player interactions and
+    synergies.
+    \item Random effects in the predictor - heroes picked, items acquired, etc.
+    \item High variance in the predictor - The game features 124 distinct heroes
+    and over 100 items. Neglecting to include specific variables for each hero
+    or item can introduce significant variability into the predictors.
+\end{itemize}
+These problems can be resolved by restricting the analysis to a specific role
+such as "Support" or "Carry". We plan on finalizing the number of predictors after
+exploratory analysis of the dataset.
+
+\section*{Timeline}
+\begin{itemize}
+    \item 03.Nov.23 - Finish exploratory analysis of the dataset and verify model assumptions.
+    \item 10.Nov.23 - Verify initial results and finalize the predictors.
+    \item 17.Nov.23 - Finish statistical analysis and explore the results.
+    \item 01.Dec.23 - Finish hypothesis testing and validation.
+    \item 11.Dec.23 - Report submission
+\end{itemize}
+
+\section*{References}
+Dataset sourced from \texttt{https://stratz.com/}
+\end{document}
