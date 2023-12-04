@@ -1,0 +1,72 @@
+[tool.poetry]
+name = "dota-analyst"
+version = "0.1.0"
+description = "Statistical analysis of Dota 2"
+authors = ["madhukar01 <mholla8@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+httpx = "^0.25.2"
+
+[tool.poetry.group.dev.dependencies]
+isort = "^5.12.0"
+pylint = "^2.17.5"
+black = "^23.9.1"
+pre-commit = {extras = ["--user"], version = "^3.4.0"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 79
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | \.env
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+include_trailing_comma = true
+use_parentheses = true
+multi_line_output = 2
+force_grid_wrap = 0
+sections = ["FUTURE","STDLIB","THIRDPARTY","FIRSTPARTY","LOCALFOLDER"]
+default_section = "THIRDPARTY"
+known_first_party = ["rl_starter"]
+line_length = 79
+known_third_party = []
+force_to_top = true
+
+[tool.flake8]
+format = "flake8"
+show-source = true
+statistics = true
+doctests = true
+enable-extensions = "G"
+strictness = "long"
+docstring-style = "numpy"
+max-line-length = 79
+max-complexity = 25
+exclude = [".git","__pycache__",".venv",".eggs","*.egg"]
+ignore = ["D100", "D104", "D106", "D401", "X100", "W504", "RST303", "RST304", "DAR103", "DAR203", "E501", "W503", "E203", "E722", "B001", "B008", "SIM106", "C901", "SIM102", "T201"]
+per-file-ignores = """
+  server/settings/*.py: WPS226, WPS407, WPS412, WPS432
+  server/*/migrations/*.py: WPS102, WPS114, WPS432
+  tests/*.py: S101, WPS432
+  app/*.py: B008
+"""
+
+[tool.pylint.MESSAGE_CONTROL]
