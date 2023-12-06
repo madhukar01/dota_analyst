@@ -167,4 +167,4 @@ cython_debug/
 *.log
 
 # data
-data/json_data/
+data/*/*.json

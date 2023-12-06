@@ -34,6 +34,7 @@ async def update_data():
             logging.error(
                 f"Error fetching stats for match {match_id}: {status}",
             )
+            input("Press enter to continue...")
             continue
 
         stats_data = match_data["data"]["match"]

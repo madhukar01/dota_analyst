@@ -22,7 +22,6 @@ console.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
-logging.getLogger("httpx").setLevel(logging.ERROR)
 
 
 async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
