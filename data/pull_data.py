@@ -3,11 +3,11 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Dict
 
-import httpx
 import live_match_query
 import match_data_query
+import match_stats_query
+from stratz_client import fetch_graphql_data
 
 # create a new logger with ID and level
 logging.basicConfig(
@@ -23,30 +23,6 @@ formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
 logging.getLogger("httpx").setLevel(logging.ERROR)
-
-
-# URL and auth token for the Stratz GraphQL endpoint
-AUTH_TOKEN = ""
-STRATZ_URL = "https://api.stratz.com/graphql"
-
-
-async def fetch_graphql_data(query: Dict) -> tuple[Dict, int]:
-    """
-    Run the query against the GraphQL endpoint and return the response data
-    and status code.
-    :param query: the GraphQL query
-    :param url: the GraphQL endpoint
-    """
-    async with httpx.AsyncClient() as client:
-        client.headers.update({"Authorization": f"Bearer {AUTH_TOKEN}"})
-        response = await client.post(STRATZ_URL, json=query)
-
-        if response.status_code == 200:
-            data = response.json()
-        else:
-            data = {}
-
-        return data, response.status_code
 
 
 async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
@@ -85,7 +61,7 @@ async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
         logging.info(f"Fetching data for match {match_id}")
 
         query = match_data_query.build_query(match_id)
-        data, status = await fetch_graphql_data(query=query)
+        live_data, status = await fetch_graphql_data(query=query)
         await asyncio.sleep(wait_time)
 
         if status != 200:
@@ -95,14 +71,30 @@ async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
             continue
 
         # check if the match is ranked
-        lobby_type = data["data"]["live"]["match"]["lobbyType"]
+        lobby_type = live_data["data"]["live"]["match"]["lobbyType"]
 
         if lobby_type != "RANKED":
             continue
 
+        # fetch end match statistics
+        query = match_stats_query.build_query(match_id)
+        match_data, status = await fetch_graphql_data(query=query)
+        await asyncio.sleep(wait_time)
+
+        if status != 200:
+            logging.error(
+                f"Error fetching stats for match {match_id}: {status}",
+            )
+            match_data = {}
+
+        current_match_data = live_data["data"]["match"]
+        stats_data = match_data["data"]["match"]
+        current_match_data.update(stats_data)
+        live_data["data"]["match"] = current_match_data
+
         # write the data to a file
         with open(f"json_data/{match_id}.json", "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+            json.dump(live_data, f, ensure_ascii=False, indent=4)
             count += 1
 
     return count
@@ -111,10 +103,10 @@ async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
 if __name__ == "__main__":
     wait_between_scrape = 900
     counter = 0
-    matches_per_scrape = 50
+    matches_per_scrape = 100
 
     while True:
-        current_scraped = asyncio.run(run_scraping(10))
+        current_scraped = asyncio.run(run_scraping(matches_per_scrape))
         counter += current_scraped
         logging.info(f"Scraped {current_scraped} matches, {counter} total")
         logging.info(f"Waiting {wait_between_scrape} seconds")
