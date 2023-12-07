@@ -3,6 +3,7 @@ import json
 import logging
 import time
 from pathlib import Path
+from typing import Dict
 
 from queries import live_match_query
 from queries import match_stats_query
@@ -21,6 +22,41 @@ console.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
+
+
+def save_match_data(match_data: Dict, match_id: int) -> int:
+    """
+    Save the data for a match to a file.
+    """
+
+    game_mode = match_data["data"]["match"]["gameMode"]
+    average_rank = match_data["data"]["match"]["rank"]
+
+    # check if the match is ranked and rank is immortal
+    if game_mode != "ALL_PICK_RANKED":
+        logging.error(f"Skipping match {match_id}: Mode {game_mode}")
+        return 0
+
+    if average_rank < 80:
+        logging.error(f"Skipping match {match_id}: Rank {average_rank}")
+        return -1
+
+    # check if the game version is latest
+    game_version = match_data["data"]["match"]["gameVersionId"]
+    if game_version != 168:
+        logging.error(f"Skipping match {match_id}: Version {game_version}")
+        return -1
+
+    # check if match has lastHits data
+    players = match_data["data"]["match"]["players"]
+    for player in players:
+        if player["stats"]["lastHitsPerMinute"] is None:
+            return 0
+
+    # write the data to a file
+    with open(f"json_data/{match_id}.json", "w", encoding="utf-8") as f:
+        json.dump(match_data, f, ensure_ascii=False, indent=4)
+    return 1
 
 
 async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
@@ -68,31 +104,9 @@ async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
             )
             continue
 
-        # check if the match is ranked and rank is immortal
-        game_mode = match_data["data"]["match"]["gameMode"]
-        average_rank = match_data["data"]["match"]["rank"]
-
-        if game_mode != "ALL_PICK_RANKED" or average_rank < 80:
-            logging.error(f"Skipping match {match_id}: {average_rank}")
-            input("Press enter to continue...")
-            continue
-
-        # check if match has lastHits data
-        players = match_data["data"]["match"]["players"]
-        no_last_hits = False
-        for player in players:
-            if player["stats"]["lastHitsPerMinute"] is None:
-                no_last_hits = True
-                break
-
-        if no_last_hits:
-            continue
-
-        # write the data to a file
-        with open(f"json_data/{match_id}.json", "w", encoding="utf-8") as f:
-            json.dump(match_data, f, ensure_ascii=False, indent=4)
+        return_value = save_match_data(match_data, match_id)
+        if return_value > 0:
             count += 1
-
     return count
 
 
