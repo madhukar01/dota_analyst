@@ -4,9 +4,8 @@ import logging
 import time
 from pathlib import Path
 
-import live_match_query
-import match_data_query
-import match_stats_query
+from queries import live_match_query
+from queries import match_stats_query
 from stratz_client import fetch_graphql_data
 
 # create a new logger with ID and level
@@ -59,8 +58,8 @@ async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
     for match_id in matches_to_fetch:
         logging.info(f"Fetching data for match {match_id}")
 
-        query = match_data_query.build_query(match_id)
-        live_data, status = await fetch_graphql_data(query=query)
+        query = match_stats_query.build_query(match_id)
+        match_data, status = await fetch_graphql_data(query=query)
         await asyncio.sleep(wait_time)
 
         if status != 200:
@@ -69,31 +68,29 @@ async def run_scraping(num_matches: int = 50, wait_time: int = 1) -> int:
             )
             continue
 
-        # check if the match is ranked
-        lobby_type = live_data["data"]["live"]["match"]["lobbyType"]
+        # check if the match is ranked and rank is immortal
+        game_mode = match_data["data"]["match"]["gameMode"]
+        average_rank = match_data["data"]["match"]["rank"]
 
-        if lobby_type != "RANKED":
+        if game_mode != "ALL_PICK_RANKED" or average_rank < 80:
+            logging.error(f"Skipping match {match_id}: {average_rank}")
+            input("Press enter to continue...")
             continue
 
-        # fetch end match statistics
-        query = match_stats_query.build_query(match_id)
-        match_data, status = await fetch_graphql_data(query=query)
-        await asyncio.sleep(wait_time)
+        # check if match has lastHits data
+        players = match_data["data"]["match"]["players"]
+        no_last_hits = False
+        for player in players:
+            if player["stats"]["lastHitsPerMinute"] is None:
+                no_last_hits = True
+                break
 
-        if status != 200:
-            logging.error(
-                f"Error fetching stats for match {match_id}: {status}",
-            )
-            match_data = {}
-
-        current_match_data = live_data["data"]["match"]
-        stats_data = match_data["data"]["match"]
-        current_match_data.update(stats_data)
-        live_data["data"]["match"] = current_match_data
+        if no_last_hits:
+            continue
 
         # write the data to a file
         with open(f"json_data/{match_id}.json", "w", encoding="utf-8") as f:
-            json.dump(live_data, f, ensure_ascii=False, indent=4)
+            json.dump(match_data, f, ensure_ascii=False, indent=4)
             count += 1
 
     return count

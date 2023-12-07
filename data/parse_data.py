@@ -13,17 +13,16 @@ def parse_match_data(data: Dict) -> Dict:
     :param data: JSON data
     """
     stored_data = {}
-    live_data = data["data"]["live"]["match"]
     match_stats = data["data"]["match"]
 
     # game info
-    stored_data["match_id"] = live_data["matchId"]
-    stored_data["game_mode"] = live_data["gameMode"]
-    stored_data["game_duration"] = live_data["gameTime"]
+    stored_data["match_id"] = match_stats["id"]
+    stored_data["game_mode"] = match_stats["gameMode"]
+    stored_data["game_duration"] = match_stats["durationSeconds"]
 
-    stored_data["radiant_score"] = live_data["radiantScore"]
-    stored_data["dire_score"] = live_data["direScore"]
-    stored_data["average_mmr"] = live_data["averageRank"]
+    stored_data["radiant_score"] = sum(match_stats["radiantKills"])
+    stored_data["dire_score"] = sum(match_stats["direKills"])
+    stored_data["average_rank"] = match_stats["rank"]
 
     stored_data["radiant_win"] = match_stats["didRadiantWin"]
     stored_data["dire_win"] = not match_stats["didRadiantWin"]
@@ -212,15 +211,15 @@ def parse_match_data(data: Dict) -> Dict:
         stored_data[f"dire_kills_{minute}"] = dire_kills_sum
 
         # win rates
-        win_rates = match_stats["winRates"]
-        if len(win_rates) >= minute:
-            radiant_win_rate = win_rates[minute - 1]
-            dire_win_rate = np.round(1 - radiant_win_rate, 2)
-        else:
-            radiant_win_rate = None
-            dire_win_rate = None
-        stored_data[f"radiant_win_rate_{minute}"] = radiant_win_rate
-        stored_data[f"dire_win_rate_{minute}"] = dire_win_rate
+        # win_rates = match_stats["winRates"]
+        # if len(win_rates) >= minute:
+        #     radiant_win_rate = win_rates[minute - 1]
+        #     dire_win_rate = np.round(1 - radiant_win_rate, 2)
+        # else:
+        #     radiant_win_rate = None
+        #     dire_win_rate = None
+        # stored_data[f"radiant_win_rate_{minute}"] = radiant_win_rate
+        # stored_data[f"dire_win_rate_{minute}"] = dire_win_rate
 
         # networth lead
         networth_leads = match_stats["radiantNetworthLeads"]
@@ -268,13 +267,14 @@ def generate_csv():
         with open(json_file, encoding="utf-8") as f:
             raw_json = json.load(f)
 
-        try:
-            parsed_json = parse_match_data(raw_json)
-        except Exception as exc:
-            logging.error(exc)
-            logging.error(f"Error parsing file: {json_file}")
-            errors += 1
-            continue
+        parsed_json = parse_match_data(raw_json)
+        # try:
+        #     parsed_json = parse_match_data(raw_json)
+        # except Exception as exc:
+        #     logging.error(exc)
+        #     logging.error(f"Error parsing file: {json_file}")
+        #     errors += 1
+        #     continue
 
         parsed_data_list.append(parsed_json)
 
