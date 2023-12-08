@@ -168,3 +168,5 @@ cython_debug/
 
 # data
 data/*/*.json
+data/parsed_data_2.csv
+data/parsed_data_3.csv
